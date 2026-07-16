@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import type { Settings, Signal, Stats, BacktestResult } from '../types';
-import { TradingViewLightweightChart } from '../components/TradingViewLightweightChart';
+import { TradingViewChart } from '../components/TradingViewChart';
 import { ActiveSignalCard } from '../components/ActiveSignalCard';
 import { SignalHistoryTable } from '../components/SignalHistoryTable';
 import { StatsDashboard } from '../components/StatsDashboard';
@@ -567,10 +567,7 @@ export default function Home() {
                 
                 {/* Chart component on left */}
                 <div className="lg:col-span-2">
-                  <TradingViewLightweightChart 
-                    activeSignal={activeSignal && isSMCApproved ? activeSignal : null}
-                    livePrice={livePrice}
-                  />
+                  <TradingViewChart />
                 </div>
 
                 {/* Dial widget and Signal setups on right */}

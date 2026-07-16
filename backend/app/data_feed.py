@@ -90,17 +90,33 @@ class DataFeedService:
         self.mock_candles_h4 = resample_tf("4h")
 
     def get_live_tick(self) -> Dict[str, Any]:
-        """Generate a new live tick update for Gold. Modifies the latest mock candle."""
-        utc_hour = datetime.utcnow().hour
-        is_active = (0 <= utc_hour < 8) or (13 <= utc_hour < 21)
-        tick_volatility = 0.25 if is_active else 0.08
-        
-        price_change = random.gauss(0, tick_volatility)
-        self.mock_current_price += price_change
-        
+        """Generate a new live tick update for Gold. Fetches live price from Yahoo Finance or falls back to simulator."""
         now = datetime.utcnow()
+        try:
+            # Attempt to fetch live price from Yahoo Finance query API
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+            res = requests.get(
+                "https://query1.finance.yahoo.com/v8/finance/chart/XAUUSD=X?interval=1m&range=1d",
+                headers=headers,
+                timeout=3
+            )
+            if res.status_code == 200:
+                data = res.json()
+                meta = data["chart"]["result"][0]["meta"]
+                live_price = float(meta["regularMarketPrice"])
+                self.mock_current_price = live_price
+            else:
+                utc_hour = datetime.utcnow().hour
+                is_active = (0 <= utc_hour < 8) or (13 <= utc_hour < 21)
+                tick_volatility = 0.25 if is_active else 0.08
+                self.mock_current_price += random.gauss(0, tick_volatility)
+        except Exception as e:
+            utc_hour = datetime.utcnow().hour
+            is_active = (0 <= utc_hour < 8) or (13 <= utc_hour < 21)
+            tick_volatility = 0.25 if is_active else 0.08
+            self.mock_current_price += random.gauss(0, tick_volatility)
+            
         latest_m5 = self.mock_candles_m5[-1]
-        
         latest_time = datetime.strptime(latest_m5["datetime"], "%Y-%m-%d %H:%M:%S")
         if now - latest_time >= timedelta(minutes=5):
             new_candle = {
