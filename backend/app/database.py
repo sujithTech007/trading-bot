@@ -482,3 +482,13 @@ def get_latest_model_meta() -> Optional[Dict[str, Any]]:
             "feature_importances": json.loads(row["feature_importances"])
         }
     return None
+
+def expire_old_signals() -> None:
+    """Mark any pending or active signals from previous database sessions as EXPIRED."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    sql = format_sql("UPDATE signals SET status = 'EXPIRED' WHERE status IN ('PENDING', 'ACTIVE')")
+    cursor.execute(sql)
+    conn.commit()
+    conn.close()
+

@@ -11,7 +11,8 @@ from app.config import load_settings, update_settings
 from app.database import (
     init_db, get_signals, get_stats, add_signal, 
     update_signal_status, get_db_connection, 
-    get_candidates_count, add_candidate_history, get_latest_model_meta
+    get_candidates_count, add_candidate_history, get_latest_model_meta,
+    expire_old_signals
 )
 from app.data_feed import data_feed
 from app.engine import evaluate_strategy
@@ -42,6 +43,7 @@ class TelegramTestRequest(BaseModel):
 def startup_event():
     """Run database initialization and start background data simulator."""
     init_db()
+    expire_old_signals()
     # Start the price tick generator loop in a background thread
     threading.Thread(target=start_price_simulation_loop, daemon=True).start()
 
