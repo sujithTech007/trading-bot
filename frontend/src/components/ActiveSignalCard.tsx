@@ -38,6 +38,21 @@ export const ActiveSignalCard: React.FC<ActiveSignalCardProps> = ({
     );
   }
 
+  const [copied, setCopied] = React.useState(false);
+  const [executed, setExecuted] = React.useState(false);
+
+  const handleCopy = () => {
+    const text = `${signal.pair} ${signal.direction}\nEntry: ${signal.entry_price.toFixed(2)}\nStop Loss: ${signal.stop_loss.toFixed(2)}\nTake Profit: ${signal.take_profit.toFixed(2)}\nLots: ${signal.lot_size.toFixed(2)}`;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleManualExecute = () => {
+    setExecuted(true);
+    setTimeout(() => setExecuted(false), 3000);
+  };
+
   const isBuy = signal.direction === 'BUY';
   const confidenceColor = signal.confidence_score >= 80 ? 'text-emerald-400 border-emerald-500/30' : 'text-amber-400 border-amber-500/30';
 
@@ -125,6 +140,28 @@ export const ActiveSignalCard: React.FC<ActiveSignalCardProps> = ({
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Manual Execution Actions */}
+      <div className="mt-4 pt-4 border-t border-slate-800/40 flex gap-2">
+        <button
+          onClick={handleCopy}
+          className="flex-1 flex items-center justify-center gap-1.5 bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-350 hover:text-slate-100 font-bold text-[10px] uppercase tracking-wider py-2.5 px-3 rounded-xl transition-all cursor-pointer active:scale-95"
+        >
+          {copied ? 'Copied!' : 'Copy Levels'}
+        </button>
+        <button
+          onClick={handleManualExecute}
+          className={`flex-1 flex items-center justify-center gap-1.5 font-bold text-[10px] uppercase tracking-wider py-2.5 px-3 rounded-xl transition-all cursor-pointer active:scale-95 ${
+            executed
+              ? 'bg-emerald-500 text-white'
+              : isBuy
+                ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                : 'bg-rose-600 hover:bg-rose-500 text-white'
+          }`}
+        >
+          {executed ? 'Execution Logged' : 'Enter Trade Manually'}
+        </button>
       </div>
     </div>
   );
