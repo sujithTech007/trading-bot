@@ -666,9 +666,9 @@ export default function Home() {
                     <div className="rounded-2xl border border-slate-900 bg-[#161B26] p-6 flex flex-col items-center justify-center text-center h-[260px] shadow-lg relative overflow-hidden">
                       <div className="absolute w-44 h-44 rounded-full bg-[#F5C542]/5 blur-3xl -top-10 -right-10 pointer-events-none" />
                       <AlertTriangle className="w-10 h-10 text-slate-600 mb-3 animate-pulse" />
-                      <h3 className="text-slate-300 font-bold text-xs uppercase tracking-wider">No Trade</h3>
+                      <h3 className="text-slate-300 font-bold text-xs uppercase tracking-wider">No High Probability Setup</h3>
                       <p className="text-[#F5C542] font-semibold text-[9px] uppercase tracking-widest mt-1">
-                        Waiting for High Probability Setup
+                        Waiting for Confirmation
                       </p>
                       <p className="text-[9px] text-slate-500 max-w-[240px] mt-2.5">
                         Gold market structure conditions are neutral. Scanners are waiting for synchronized HTF structure alignment and session liquidity grab.

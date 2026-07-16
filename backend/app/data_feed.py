@@ -96,7 +96,7 @@ class DataFeedService:
             # Attempt to fetch live price from Yahoo Finance query API
             headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
             res = requests.get(
-                "https://query1.finance.yahoo.com/v8/finance/chart/XAUUSD=X?interval=1m&range=1d",
+                "https://query1.finance.yahoo.com/v8/finance/chart/GC=F?interval=1m&range=1d",
                 headers=headers,
                 timeout=3
             )
@@ -164,7 +164,7 @@ class DataFeedService:
         elif "4h" in interval_lower or "240" in interval_lower:
             # Fetch 1h and resample to 4h
             df_h1 = self.fetch_yahoo_finance_candles(interval="1h", outputsize=outputsize * 4)
-            df_h4 = df_h1.set_index("datetime").resample("4H").agg({
+            df_h4 = df_h1.set_index("datetime").resample("4h").agg({
                 "open": "first",
                 "high": "max",
                 "low": "min",
@@ -174,7 +174,7 @@ class DataFeedService:
             return df_h4[-outputsize:]
 
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-        url = f"https://query1.finance.yahoo.com/v8/finance/chart/XAUUSD=X?interval={tf}&range={range_str}"
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/GC=F?interval={tf}&range={range_str}"
         res = requests.get(url, headers=headers, timeout=10)
         
         if res.status_code != 200:
