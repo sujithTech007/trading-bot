@@ -383,7 +383,7 @@ export default function Home() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `aurum_ai_journal_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute("download", `gold_matrix_journal_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -425,7 +425,7 @@ export default function Home() {
     if (score < 60) return '#f97316'; // Orange
     if (score < 75) return '#f59e0b'; // Yellow
     if (score < 85) return '#10b981'; // Green
-    return '#F5C542'; // Premium Aurum Gold
+    return '#F5C542'; // Premium Matrix Gold
   };
 
   const confidenceScore = activeSignal?.confidence_score || 0;
@@ -446,7 +446,7 @@ export default function Home() {
                 <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-[#F5C542] to-yellow-250 flex items-center justify-center shadow-md shadow-[#F5C542]/10">
                   <TrendingUp className="w-4 h-4 text-[#0B0F19] font-bold" />
                 </div>
-                <span className="text-sm font-extrabold tracking-widest bg-gradient-to-r from-[#F5C542] to-white bg-clip-text text-transparent">AURUM AI</span>
+                <span className="text-sm font-extrabold tracking-widest bg-gradient-to-r from-[#F5C542] to-white bg-clip-text text-transparent">GOLD.MATRIX</span>
               </div>
             ) : (
               <TrendingUp className="w-5 h-5 text-[#F5C542] mx-auto" />
@@ -534,7 +534,7 @@ export default function Home() {
             <div className="flex items-center gap-2 bg-slate-900/10 border border-slate-900/60 px-3 py-1.5 rounded-xl">
               <span className={`w-1.5 h-1.5 rounded-full ${wsStatus === 'connected' ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
               <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
-                {wsStatus === 'connected' ? 'AURUM STREAM ACTIVE' : 'RECONNECTING'}
+                {wsStatus === 'connected' ? 'MATRIX STREAM ACTIVE' : 'RECONNECTING'}
               </span>
             </div>
 
