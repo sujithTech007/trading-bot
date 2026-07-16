@@ -738,6 +738,20 @@ export default function Home() {
                         Grab Status
                       </span>
                     </div>
+
+                    <div className="bg-slate-900/40 border border-slate-850/40 rounded-xl p-4 flex justify-between items-center">
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">15M MACD Momentum</span>
+                        <div className="text-xs font-bold text-slate-300 mt-1.5 flex gap-3">
+                          <span>MACD: <span className="font-mono text-white">{liveAnalysis?.macd ? liveAnalysis.macd.macd.toFixed(3) : '0.000'}</span></span>
+                          <span>Signal: <span className="font-mono text-white">{liveAnalysis?.macd ? liveAnalysis.macd.signal.toFixed(3) : '0.000'}</span></span>
+                          <span>Hist: <span className={`font-mono ${liveAnalysis?.macd?.histogram >= 0 ? 'text-emerald-450' : 'text-rose-450'}`}>{liveAnalysis?.macd ? liveAnalysis.macd.histogram.toFixed(3) : '0.000'}</span></span>
+                        </div>
+                      </div>
+                      <span className="text-[9px] bg-blue-950 text-blue-400 font-bold border border-blue-500/20 px-2 py-0.5 rounded">
+                        MACD (12, 26, 9)
+                      </span>
+                    </div>
                   </div>
                 </div>
 

@@ -145,8 +145,71 @@ class DataFeedService:
             "candle": self.mock_candles_m5[-1]
         }
 
+    def fetch_yahoo_finance_candles(self, interval: str = "15min", outputsize: int = 200) -> pd.DataFrame:
+        """Fetch real-time Gold spot candles from Yahoo Finance."""
+        # Map intervals
+        tf = "15m"
+        range_str = "5d"
+        interval_lower = interval.lower()
+        
+        if "5" in interval_lower:
+            tf = "5m"
+            range_str = "5d"
+        elif "15" in interval_lower:
+            tf = "15m"
+            range_str = "10d"
+        elif "1h" in interval_lower or "60" in interval_lower:
+            tf = "60m"
+            range_str = "30d"
+        elif "4h" in interval_lower or "240" in interval_lower:
+            # Fetch 1h and resample to 4h
+            df_h1 = self.fetch_yahoo_finance_candles(interval="1h", outputsize=outputsize * 4)
+            df_h4 = df_h1.set_index("datetime").resample("4H").agg({
+                "open": "first",
+                "high": "max",
+                "low": "min",
+                "close": "last",
+                "volume": "sum"
+            }).dropna().reset_index()
+            return df_h4[-outputsize:]
+
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/XAUUSD=X?interval={tf}&range={range_str}"
+        res = requests.get(url, headers=headers, timeout=10)
+        
+        if res.status_code != 200:
+            raise Exception(f"Yahoo Finance API error (HTTP {res.status_code})")
+            
+        data = res.json()
+        result = data["chart"]["result"][0]
+        timestamps = result["timestamp"]
+        quote = result["indicators"]["quote"][0]
+        
+        opens = quote["open"]
+        highs = quote["high"]
+        lows = quote["low"]
+        closes = quote["close"]
+        volumes = quote["volume"]
+        
+        candles = []
+        for i in range(len(timestamps)):
+            if opens[i] is None or highs[i] is None or lows[i] is None or closes[i] is None:
+                continue
+            candles.append({
+                "datetime": datetime.utcfromtimestamp(timestamps[i]),
+                "open": float(opens[i]),
+                "high": float(highs[i]),
+                "low": float(lows[i]),
+                "close": float(closes[i]),
+                "volume": int(volumes[i]) if volumes[i] is not None else 0
+            })
+            
+        df = pd.DataFrame(candles)
+        df = df.sort_values("datetime").reset_index(drop=True)
+        return df[-outputsize:]
+
     def fetch_ohlcv(self, interval: str = "15min", outputsize: int = 200) -> pd.DataFrame:
-        """Fetch historical candles. Uses TwelveData API or falls back to mock data."""
+        """Fetch historical candles. Uses TwelveData API or falls back to Yahoo Finance."""
         settings = load_settings()
         api_key = settings.twelvedata_api_key
         
@@ -156,7 +219,10 @@ class DataFeedService:
             return self._cache[cache_key]
             
         if not api_key:
-            return self._get_mock_df(interval, outputsize)
+            df = self.fetch_yahoo_finance_candles(interval, outputsize)
+            self._cache[cache_key] = df
+            self._cache_time[cache_key] = now_ts
+            return df
             
         try:
             td_interval = "5min"
@@ -173,8 +239,8 @@ class DataFeedService:
             data = res.json()
             
             if "values" not in data:
-                print(f"TwelveData API Error: {data.get('message', 'Unknown error')}. Falling back to simulator.")
-                return self._get_mock_df(interval, outputsize)
+                print(f"TwelveData API Error: {data.get('message', 'Unknown error')}. Falling back to Yahoo Finance.")
+                return self.fetch_yahoo_finance_candles(interval, outputsize)
                 
             values = data["values"]
             df = pd.DataFrame(values)
@@ -193,8 +259,8 @@ class DataFeedService:
             return df
             
         except Exception as e:
-            print(f"Error fetching from TwelveData: {e}. Using mock simulator.")
-            return self._get_mock_df(interval, outputsize)
+            print(f"Error fetching from TwelveData: {e}. Using Yahoo Finance.")
+            return self.fetch_yahoo_finance_candles(interval, outputsize)
 
     def _get_mock_df(self, interval: str, outputsize: int) -> pd.DataFrame:
         """Helper to return simulator candles as a pandas DataFrame."""

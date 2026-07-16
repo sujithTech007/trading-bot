@@ -191,6 +191,13 @@ def get_live_analysis():
         pivots_m5 = get_pivots(df_m5, left=2, right=2)
         sweep_sell, sweep_buy = check_liquidity_sweep(df_m5, pivots_m5)
         
+        # 5. MACD (on 15m closes)
+        from app.engine import calculate_macd
+        macd_line, signal_line, histogram = calculate_macd(df_m15["close"])
+        latest_macd = float(macd_line.iloc[-1])
+        latest_signal = float(signal_line.iloc[-1])
+        latest_hist = float(histogram.iloc[-1])
+        
         current_price = data_feed.mock_current_price
         
         bullish_obs = [{"top": round(ob["top"], 2), "bottom": round(ob["bottom"], 2)} for ob in zones_m15.get("bullish_obs", [])[-2:]]
@@ -209,7 +216,12 @@ def get_live_analysis():
             "bullish_obs_m15": bullish_obs,
             "bearish_obs_m15": bearish_obs,
             "bullish_fvgs_m15": bullish_fvgs,
-            "bearish_fvgs_m15": bearish_fvgs
+            "bearish_fvgs_m15": bearish_fvgs,
+            "macd": {
+                "macd": round(latest_macd, 3),
+                "signal": round(latest_signal, 3),
+                "histogram": round(latest_hist, 3)
+            }
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

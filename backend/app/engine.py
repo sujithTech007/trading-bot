@@ -7,6 +7,15 @@ from app.database import get_daily_pnl, add_candidate_history
 from app.feature_pipeline import extract_latest_features
 from app.ml_model import ml_model_service
 
+def calculate_macd(series: pd.Series, fast: int = 12, slow: int = 26, signal: int = 9) -> tuple:
+    """Calculate MACD Line, Signal Line, and Histogram."""
+    ema_fast = series.ewm(span=fast, adjust=False).mean()
+    ema_slow = series.ewm(span=slow, adjust=False).mean()
+    macd_line = ema_fast - ema_slow
+    signal_line = macd_line.ewm(span=signal, adjust=False).mean()
+    histogram = macd_line - signal_line
+    return macd_line, signal_line, histogram
+
 def calculate_ema(series: pd.Series, period: int) -> pd.Series:
     """Calculate Exponential Moving Average."""
     return series.ewm(span=period, adjust=False).mean()
