@@ -1,0 +1,46 @@
+# IDE and System Files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+.DS_Store
+
+# Version Control / Logs
+logs/
+*.log
+.system_generated/
+
+# Python Virtual Environments & Cache
+.venv/
+venv/
+ENV/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Node & Next.js Builds
+node_modules/
+.next/
+dist/
+out/
+build/
+
+# Project Data & Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.db
+signals.db
+active_model.joblib
+*.joblib
+*.png
+*.webp
+*.zip
+*.tar.gz
