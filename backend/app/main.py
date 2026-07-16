@@ -164,6 +164,56 @@ async def price_simulation_worker():
             
         await asyncio.sleep(3.0)
 
+@app.get("/api/analysis")
+def get_live_analysis():
+    """Evaluate and return the live SMC structures on current real-time market data."""
+    try:
+        df_m5 = data_feed.fetch_ohlcv(interval="5min", outputsize=100)
+        df_m15 = data_feed.fetch_ohlcv(interval="15min", outputsize=100)
+        df_h1 = data_feed.fetch_ohlcv(interval="1h", outputsize=100)
+        df_h4 = data_feed.fetch_ohlcv(interval="4h", outputsize=100)
+        
+        # Evaluate using our engine math
+        from app.engine import get_pivots, detect_structure, detect_obs_and_fvgs, check_liquidity_sweep
+        
+        # 1. 4H Trend
+        pivots_h4 = get_pivots(df_h4, left=2, right=2)
+        struct_h4 = detect_structure(df_h4, pivots_h4)
+        
+        # 2. 1H Midpoint Range
+        pivots_h1 = get_pivots(df_h1, left=2, right=2)
+        struct_h1 = detect_structure(df_h1, pivots_h1)
+        
+        # 3. 15M OBs & FVGs
+        zones_m15 = detect_obs_and_fvgs(df_m15)
+        
+        # 4. 5M Sweep
+        pivots_m5 = get_pivots(df_m5, left=2, right=2)
+        sweep_sell, sweep_buy = check_liquidity_sweep(df_m5, pivots_m5)
+        
+        current_price = data_feed.mock_current_price
+        
+        bullish_obs = [{"top": round(ob["top"], 2), "bottom": round(ob["bottom"], 2)} for ob in zones_m15.get("bullish_obs", [])[-2:]]
+        bearish_obs = [{"top": round(ob["top"], 2), "bottom": round(ob["bottom"], 2)} for ob in zones_m15.get("bearish_obs", [])[-2:]]
+        bullish_fvgs = [{"top": round(fvg["top"], 2), "bottom": round(fvg["bottom"], 2)} for fvg in zones_m15.get("bullish_fvgs", [])[-2:]]
+        bearish_fvgs = [{"top": round(fvg["top"], 2), "bottom": round(fvg["bottom"], 2)} for fvg in zones_m15.get("bearish_fvgs", [])[-2:]]
+        
+        return {
+            "current_price": round(current_price, 2),
+            "trend_4h": struct_h4["structure"],
+            "ema_200_4h": round(df_h4["close"].ewm(span=200, adjust=False).mean().iloc[-1], 2) if len(df_h4) >= 200 else round(df_h4["close"].mean(), 2),
+            "structure_1h": struct_h1["structure"],
+            "midpoint_1h": round(struct_h1["midpoint"], 2),
+            "zone_1h": struct_h1["zone"],
+            "sweep_5m": "Sell-Side Sweep Completed" if sweep_sell else "Buy-Side Sweep Completed" if sweep_buy else "No Sweep Detected",
+            "bullish_obs_m15": bullish_obs,
+            "bearish_obs_m15": bearish_obs,
+            "bullish_fvgs_m15": bullish_fvgs,
+            "bearish_fvgs_m15": bearish_fvgs
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # API Endpoints
 @app.get("/api/settings")
 def get_current_settings():

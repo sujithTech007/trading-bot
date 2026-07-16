@@ -64,6 +64,7 @@ export default function Home() {
   const [signals, setSignals] = useState<Signal[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [backtestResult, setBacktestResult] = useState<BacktestResult | null>(null);
+  const [liveAnalysis, setLiveAnalysis] = useState<any>(null);
   const [modelHealth, setModelHealth] = useState<{
     active: boolean;
     metadata: any;
@@ -113,10 +114,11 @@ export default function Home() {
   const fetchInitialData = async () => {
     setIsLoading(true);
     try {
-      const [settingsRes, signalsRes, statsRes] = await Promise.all([
+      const [settingsRes, signalsRes, statsRes, analysisRes] = await Promise.all([
         fetch(`${API_BASE}/settings`),
         fetch(`${API_BASE}/signals`),
-        fetch(`${API_BASE}/stats`)
+        fetch(`${API_BASE}/stats`),
+        fetch(`${API_BASE}/analysis`)
       ]);
 
       if (settingsRes.ok) {
@@ -129,6 +131,7 @@ export default function Home() {
       }
       if (signalsRes.ok) setSignals(await signalsRes.json());
       if (statsRes.ok) setStats(await statsRes.json());
+      if (analysisRes.ok) setLiveAnalysis(await analysisRes.json());
       await fetchModelHealth();
     } catch (e) {
       showToast("Failed to connect to backend server. Make sure API is running.", "error");
@@ -233,11 +236,32 @@ export default function Home() {
       const sigs = await fetch(`${API_BASE}/signals`);
       if (sigs.ok) setSignals(await sigs.json());
       
+      const analysisRes = await fetch(`${API_BASE}/analysis`);
+      if (analysisRes.ok) setLiveAnalysis(await analysisRes.json());
+      
       await fetchModelHealth();
     } catch (e) {
       console.error("Error refreshing dashboard stats:", e);
     }
   };
+
+  // Poll Live Analysis when on analysis tab
+  useEffect(() => {
+    if (activeTab !== 'analysis') return;
+    
+    const fetchAnalysis = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/analysis`);
+        if (res.ok) setLiveAnalysis(await res.json());
+      } catch (e) {
+        console.error("Error polling live analysis:", e);
+      }
+    };
+    
+    fetchAnalysis();
+    const interval = setInterval(fetchAnalysis, 10000); // Poll every 10 seconds
+    return () => clearInterval(interval);
+  }, [activeTab]);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info') => {
     setToast({ message, type });
@@ -682,28 +706,36 @@ export default function Home() {
                     <div className="bg-slate-900/40 border border-slate-850/40 rounded-xl p-4 flex justify-between items-center">
                       <div>
                         <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">4H Trend Bias</span>
-                        <div className="text-sm font-extrabold text-white mt-1">BULLISH STRUCTURE</div>
+                        <div className="text-sm font-extrabold text-white mt-1">
+                          {liveAnalysis ? `${liveAnalysis.trend_4h} STRUCTURE` : 'CALCULATING...'}
+                        </div>
                       </div>
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[9px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-500/20">
-                        <ShieldCheck className="w-3 h-3" /> price &gt; 200 EMA
+                        <ShieldCheck className="w-3 h-3" /> {liveAnalysis ? `EMA 200: $${liveAnalysis.ema_200_4h}` : 'LOADING...'}
                       </span>
                     </div>
 
                     <div className="bg-slate-900/40 border border-slate-850/40 rounded-xl p-4 flex justify-between items-center">
                       <div>
                         <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">1H Midpoint Range</span>
-                        <div className="text-sm font-extrabold text-white mt-1">DISCOUNT VALUE ZONE</div>
+                        <div className="text-sm font-extrabold text-white mt-1">
+                          {liveAnalysis ? `${liveAnalysis.zone_1h} ZONE` : 'CALCULATING...'}
+                        </div>
                       </div>
-                      <span className="text-xs font-mono font-bold text-slate-350">$2,342.50</span>
+                      <span className="text-xs font-mono font-bold text-slate-350">
+                        {liveAnalysis ? `$${liveAnalysis.midpoint_1h.toFixed(2)}` : '$0.00'}
+                      </span>
                     </div>
 
                     <div className="bg-slate-900/40 border border-slate-850/40 rounded-xl p-4 flex justify-between items-center">
                       <div>
                         <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">5M Sweep Condition</span>
-                        <div className="text-sm font-extrabold text-slate-350 mt-1">Sell-Side Liquidity Taken</div>
+                        <div className="text-sm font-extrabold text-slate-355 mt-1">
+                          {liveAnalysis ? liveAnalysis.sweep_5m : 'SCANNING...'}
+                        </div>
                       </div>
                       <span className="text-[9px] bg-blue-950 text-blue-400 font-bold border border-blue-500/20 px-2 py-0.5 rounded">
-                        Grab completed
+                        Grab Status
                       </span>
                     </div>
                   </div>
@@ -719,24 +751,60 @@ export default function Home() {
                     <div>
                       <div className="text-[9px] text-slate-500 uppercase tracking-wider font-bold mb-1.5">Unmitigated Order Blocks (OB)</div>
                       <div className="space-y-1.5">
-                        <div className="flex justify-between items-center text-[10px] font-medium bg-slate-900/30 border border-slate-850/30 p-2 rounded-lg">
-                          <span className="text-emerald-450 font-semibold flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Bullish Block</span>
-                          <span className="font-mono text-slate-400">$2,340.50 - $2,344.20</span>
-                        </div>
-                        <div className="flex justify-between items-center text-[10px] font-medium bg-slate-900/30 border border-slate-850/30 p-2 rounded-lg">
-                          <span className="text-rose-450 font-semibold flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Bearish Block</span>
-                          <span className="font-mono text-slate-400">$2,368.10 - $2,371.40</span>
-                        </div>
+                        {liveAnalysis && liveAnalysis.bullish_obs_m15.length > 0 ? (
+                          liveAnalysis.bullish_obs_m15.map((ob: any, i: number) => (
+                            <div key={i} className="flex justify-between items-center text-[10px] font-medium bg-slate-900/30 border border-slate-850/30 p-2 rounded-lg">
+                              <span className="text-emerald-450 font-semibold flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Bullish Block</span>
+                              <span className="font-mono text-slate-400">${ob.bottom.toFixed(2)} - ${ob.top.toFixed(2)}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-[10px] text-slate-550 italic bg-slate-900/20 p-2 rounded-lg">
+                            No active bullish order blocks.
+                          </div>
+                        )}
+                        {liveAnalysis && liveAnalysis.bearish_obs_m15.length > 0 ? (
+                          liveAnalysis.bearish_obs_m15.map((ob: any, i: number) => (
+                            <div key={i} className="flex justify-between items-center text-[10px] font-medium bg-slate-900/30 border border-slate-850/30 p-2 rounded-lg">
+                              <span className="text-rose-450 font-semibold flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Bearish Block</span>
+                              <span className="font-mono text-slate-400">${ob.bottom.toFixed(2)} - ${ob.top.toFixed(2)}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-[10px] text-slate-550 italic bg-slate-900/20 p-2 rounded-lg">
+                            No active bearish order blocks.
+                          </div>
+                        )}
                       </div>
                     </div>
 
                     <div>
                       <div className="text-[9px] text-slate-500 uppercase tracking-wider font-bold mb-1.5">Active Fair Value Gaps (FVG)</div>
                       <div className="space-y-1.5">
-                        <div className="flex justify-between items-center text-[10px] font-medium bg-slate-900/30 border border-slate-850/30 p-2 rounded-lg">
-                          <span className="text-emerald-450 font-semibold">Bullish Imbalance</span>
-                          <span className="font-mono text-slate-400">$2,348.00 - $2,350.20</span>
-                        </div>
+                        {liveAnalysis && liveAnalysis.bullish_fvgs_m15.length > 0 ? (
+                          liveAnalysis.bullish_fvgs_m15.map((fvg: any, i: number) => (
+                            <div key={i} className="flex justify-between items-center text-[10px] font-medium bg-slate-900/30 border border-slate-850/30 p-2 rounded-lg">
+                              <span className="text-emerald-450 font-semibold">Bullish Imbalance</span>
+                              <span className="font-mono text-slate-400">${fvg.bottom.toFixed(2)} - ${fvg.top.toFixed(2)}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-[10px] text-slate-550 italic bg-slate-900/20 p-2 rounded-lg">
+                            No active bullish gaps.
+                          </div>
+                        )}
+                        {liveAnalysis && liveAnalysis.bearish_fvgs_m15.length > 0 ? (
+                          liveAnalysis.bearish_fvgs_m15.map((fvg: any, i: number) => (
+                            <div key={i} className="flex justify-between items-center text-[10px] font-medium bg-slate-900/30 border border-slate-850/30 p-2 rounded-lg">
+                              <span className="text-rose-450 font-semibold">Bearish Imbalance</span>
+                              <span className="font-mono text-slate-400">${fvg.bottom.toFixed(2)} - ${fvg.top.toFixed(2)}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-[10px] text-slate-550 italic bg-slate-900/20 p-2 rounded-lg">
+                            No active bearish gaps.
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
