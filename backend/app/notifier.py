@@ -76,3 +76,27 @@ def test_telegram_connection(bot_token: str, chat_id: str) -> bool:
     except Exception as e:
         print(f"Error testing Telegram connection: {e}")
         return False
+
+def send_telegram_execution_alert(signal: Dict[str, Any]) -> None:
+    """Send execution confirmation message to Telegram."""
+    settings = load_settings()
+    bot_token = settings.telegram_bot_token
+    chat_id = settings.telegram_chat_id
+    
+    if not bot_token or not chat_id:
+        return
+        
+    message = (
+        f"✅ *GOLD.MATRIX MANUAL ENTRY CONFIRMED* ✅\n\n"
+        f"Pair: *{signal['pair']}*\n"
+        f"Direction: *{signal['direction']}*\n"
+        f"Entry Price: `{signal['entry_price']:.2f}`\n"
+        f"Stop Loss: `{signal['stop_loss']:.2f}`\n"
+        f"Take Profit: `{signal['take_profit']:.2f}`\n\n"
+        f"⚡️ Trade is now *ACTIVE* and being monitored live."
+    )
+    
+    thread = threading.Thread(target=_send_telegram_async, args=(bot_token, chat_id, message))
+    thread.daemon = True
+    thread.start()
+

@@ -324,6 +324,24 @@ export default function Home() {
     }
   };
 
+  const handleExecuteSignal = async (signalId: number): Promise<boolean> => {
+    try {
+      const res = await fetch(`${API_BASE}/signals/${signalId}/execute`, { method: 'POST' });
+      if (res.ok) {
+        showToast("Trade executed manually! Live monitoring activated.", "success");
+        return true;
+      } else {
+        const errorData = await res.json();
+        showToast(`Execution failed: ${errorData.detail || 'Unknown error'}`, "error");
+        return false;
+      }
+    } catch (e) {
+      showToast("Error sending execution command to API.", "error");
+      return false;
+    }
+  };
+
+
   const handleRunBacktest = async () => {
     setIsLoading(true);
     try {
@@ -651,6 +669,7 @@ export default function Home() {
                         settings={settings}
                         onTriggerMock={handleTriggerMock}
                         isLoading={isLoading}
+                        onExecute={handleExecuteSignal}
                       />
                       
                       {/* AI Explainer text panel */}

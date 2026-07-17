@@ -18,7 +18,7 @@ from app.data_feed import data_feed
 from app.engine import evaluate_strategy
 from app.backtester import run_backtest
 from app.ws_manager import manager
-from app.notifier import send_telegram_alert, test_telegram_connection
+from app.notifier import send_telegram_alert, test_telegram_connection, send_telegram_execution_alert
 from app.ml_model import ml_model_service
 
 app = FastAPI(title="Gold Challenge Desk API")
@@ -87,10 +87,8 @@ async def price_simulation_worker():
                 tp = trade["take_profit"]
                 status = trade["status"]
                 
-                if status == "PENDING":
-                    update_signal_status(trade_id, "ACTIVE")
-                    status = "ACTIVE"
-                    
+                # Only monitor ACTIVE trades for hits.
+                # PENDING signals wait for manual execution from the dashboard.
                 if status == "ACTIVE":
                     hit_sl = False
                     hit_tp = False
@@ -335,6 +333,57 @@ async def trigger_mock_signal():
     })
     
     return {"status": "success", "signal": signal}
+
+@app.post("/api/signals/{signal_id}/execute")
+async def execute_signal(signal_id: int):
+    """Manually activate a pending trade signal."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Check SQLite or Postgres dialect compatibility
+    cursor.execute("SELECT * FROM signals WHERE id = ?", (signal_id,))
+    trade = cursor.fetchone()
+    
+    if not trade:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Signal not found")
+        
+    if trade["status"] != "PENDING":
+        conn.close()
+        raise HTTPException(status_code=400, detail=f"Signal is already {trade['status']}")
+        
+    update_signal_status(signal_id, "ACTIVE")
+    
+    # Reload signal to get updated state
+    cursor.execute("SELECT * FROM signals WHERE id = ?", (signal_id,))
+    updated_trade = cursor.fetchone()
+    conn.close()
+    
+    # Parse db dict correctly
+    formatted_trade = {
+        "id": updated_trade["id"],
+        "pair": updated_trade["pair"],
+        "direction": updated_trade["direction"],
+        "entry_price": updated_trade["entry_price"],
+        "stop_loss": updated_trade["stop_loss"],
+        "take_profit": updated_trade["take_profit"],
+        "risk_reward": updated_trade["risk_reward"],
+        "lot_size": updated_trade["lot_size"],
+        "session": updated_trade["session"],
+        "timestamp": updated_trade["timestamp"],
+        "status": "ACTIVE"
+    }
+    
+    # Send Telegram confirmation alert
+    send_telegram_execution_alert(formatted_trade)
+    
+    # Broadcast updated signal state to frontend via WebSocket
+    await manager.broadcast({
+        "type": "SIGNAL_UPDATE",
+        "data": formatted_trade
+    })
+    
+    return {"status": "success", "message": f"Signal #{signal_id} is now ACTIVE and being monitored."}
 
 @app.post("/api/train-model")
 def train_ml_model():
